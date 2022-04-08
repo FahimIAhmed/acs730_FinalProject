@@ -1,13 +1,13 @@
 
 # Retrieve global variables from the Terraform module
-module "globalvars"{
+module "globalvars" {
   source = "../../../modules/globalvars"
 }
 
 # Define tags locally
 locals {
   default_tags = merge(module.globalvars.default_tags, { "env" = var.env })
-  prefix = module.globalvars.prefix
+  prefix       = module.globalvars.prefix
   name_prefix  = "${local.prefix}-${var.env}"
 }
 
@@ -21,4 +21,10 @@ module "vpc-dev" {
   private_cidr_block = var.private_subnet_cidrs
   prefix             = local.name_prefix
   default_tags       = local.default_tags
+}
+
+module "SG" {
+  source = "../../../modules/SG"
+  env    = var.env
+  #aws_security_group =  "web_sg"
 }
