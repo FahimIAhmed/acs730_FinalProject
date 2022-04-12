@@ -1,3 +1,17 @@
+# Use remote state to retrieve the data
+data "terraform_remote_state" "network" { // This is to use Outputs from Remote State
+  backend = "s3"
+  config = {
+    bucket = "team-final-project-fa"      // Bucket from where to GET Terraform State
+   # key    = "${var.env}-network/terraform.tfstate" 
+    key = "Network/terraform.tfstate"
+    // Object name in the bucket to GET Terraform State
+    region = "us-east-1"                            // Region where bucket created
+  }
+}
+
+
+
 resource "aws_vpc" "my_vpc" {
   cidr_block       = "10.0.0.0/16"
   enable_dns_hostnames = true
