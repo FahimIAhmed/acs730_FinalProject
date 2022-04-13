@@ -1,6 +1,9 @@
 # Default tags
 variable "default_tags" {
-  default     = {}
+  default = {
+    "Owner" = "Team",
+    "App"   = "Web"
+  }
   type        = map(any)
   description = "Default tags to be appliad to all AWS resources"
 }
@@ -11,13 +14,7 @@ variable "prefix" {
   description = "prefix for resources"
   type        = string
 }
-# Variable to signal the current environment 
-variable "env" {
-  default     = "dev"
-  type        = string
-  description = "Deployment Environment"
-}
-#variable for public cidr block
+
 variable "public_cidr_blocks" {
   default     = ["10.2.1.0/24", "10.2.2.0/24", "10.2.0.0/24"]
   description = "private cidrs"
@@ -29,6 +26,12 @@ variable "private_cidr_blocks" {
   description = "private cidrs"
   type        = list(string)
 }
+# Variable to signal the current environment 
+variable "env" {
+  default     = "dev"
+  type        = string
+  description = "Deployment Environment"
+}
 
 #variable for vpc
 variable "vpc_id" {
@@ -36,3 +39,5 @@ variable "vpc_id" {
   description = "aws vpc "
   type        = string
 }
+
+

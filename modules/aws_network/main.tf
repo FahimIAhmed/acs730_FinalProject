@@ -9,13 +9,14 @@ data "aws_availability_zones" "available" {
 }
 
 
-# Create a new VPC 
+#Resource for default VPC id
 resource "aws_vpc" "main" {
-  cidr_block       = var.vpc_cidr
+  cidr_block       = var.vpc_id
   instance_tenancy = "default"
-  tags = merge(
-    var.default_tags, {
-      Name = "${var.prefix}-vpc"
+
+  tags = merge(var.default_tags,
+    {
+      "Name" = "${var.prefix}-${var.env}-vpc_cidr"
     }
   )
 }
@@ -36,9 +37,9 @@ resource "aws_subnet" "public_subnet" {
 
 # Add provisioning of the private subnets in the custom VPC
 resource "aws_subnet" "private_subnet" {
-count             = length(var.private_cidr_block)
+  count             = length(var.private_cidr_blocks)
   vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_cidr_block[count.index]
+  cidr_block        = var.private_cidr_blocks[count.index]
   availability_zone = data.aws_availability_zones.available.names[count.index]
   tags = merge(
     var.default_tags, {
@@ -94,7 +95,7 @@ resource "aws_nat_gateway" "nat-gw" {
 
 # Create elastic IP for NAT GW
 resource "aws_eip" "nat-eip" {
-  vpc   = true
+  vpc = true
   tags = {
     Name = "${var.prefix}-natgw"
   }
@@ -119,7 +120,7 @@ resource "aws_route" "private_route" {
 
 # Associate subnets with the custom route table
 resource "aws_route_table_association" "private_route_table_association" {
-count=length(aws_subnet.private_subnet[*].id)
+  count          = length(aws_subnet.private_subnet[*].id)
   route_table_id = aws_route_table.private_route_table.id
   subnet_id      = aws_subnet.private_subnet[count.index].id
 }
