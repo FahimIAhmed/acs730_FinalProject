@@ -85,5 +85,32 @@ resource "aws_autoscaling_group" "autoscaling_group" {
   )
 }
 
+# Creating the autoscaling scale out policy
+resource "aws_autoscaling_policy" "scale_out_policy" {
+  scaling_adjustment     = 2
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
+  
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${var.prefix}-ScaleOutPolicy${count.index}"
+    }
+  )
+}
+
+# Creating the autoscaling scale in policy
+resource "aws_autoscaling_policy" "scale_in_policy" {
+  scaling_adjustment     = -2
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
+  
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${var.prefix}-ScaleInPolicy${count.index}"
+    }
+  )
+}
 
   
