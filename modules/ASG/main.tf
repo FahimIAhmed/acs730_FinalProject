@@ -99,6 +99,24 @@ resource "aws_autoscaling_policy" "scale_out_policy" {
   )
 }
 
+# Creating the AWS CLoudwatch Alarm that will scale out the AWS EC2 instance based on CPU utilization
+resource "aws_cloudwatch_metric_alarm" "alarm_cpu_scale_out" {
+  alarm_name = "alarm_cpu_scale_out"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods = "2"
+  metric_name = "CPUUtilization"
+  namespace = "AWS/EC2"
+  period = "60"
+  statistic = "Average"
+  threshold = "10"
+  alarm_actions = [
+        "${aws_autoscaling_policy.scale_out_policy.arn}"
+    ]
+  dimensions = {
+    AutoScalingGroupName = "${aws_autoscaling_group.autoscaling_group.name}"
+  }
+}
+
 # Creating the autoscaling scale in policy
 resource "aws_autoscaling_policy" "scale_in_policy" {
   scaling_adjustment     = -2
@@ -112,5 +130,24 @@ resource "aws_autoscaling_policy" "scale_in_policy" {
     }
   )
 }
+
+# Creating the AWS CLoudwatch Alarm that will scale in the AWS EC2 instance based on CPU utilization
+resource "aws_cloudwatch_metric_alarm" "alarm_cpu_scale_in" {
+  alarm_name = "alarm_cpu_scale_in"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods = "2"
+  metric_name = "CPUUtilization"
+  namespace = "AWS/EC2"
+  period = "60"
+  statistic = "Average"
+  threshold = "5"
+  alarm_actions = [
+        "${aws_autoscaling_policy.scale_out_policy.arn}"
+    ]
+  dimensions = {
+    AutoScalingGroupName = "${aws_autoscaling_group.autoscaling_group.name}"
+  }
+}
+
 
   
