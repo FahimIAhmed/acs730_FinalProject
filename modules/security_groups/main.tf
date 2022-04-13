@@ -23,7 +23,7 @@ module "globalvars" {
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "group8-dev"                     // Bucket where to SAVE Terraform State
+    bucket = "group8-dev"                    // Bucket where to SAVE Terraform State
     key    = "dev/network/terraform.tfstate" // Object name in the bucket to SAVE Terraform State
     region = "us-east-1"                     // Region where bucket is created
   }
@@ -33,7 +33,7 @@ data "terraform_remote_state" "network" {
 resource "aws_security_group" "bastion_sg" {
   name        = "BastionSG"
   description = "Allow SSH inbound traffic"
-  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id[0]
+  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
 
 
   ingress {
@@ -63,7 +63,7 @@ resource "aws_security_group" "bastion_sg" {
 resource "aws_security_group" "private_sg" {
   name        = "Dev"
   description = "Allow HTTP and SSH inbound traffic"
-  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id[0]
+  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
   ingress {
     description = "HTTP from Bastion"
     from_port   = 80
@@ -96,3 +96,22 @@ resource "aws_security_group" "private_sg" {
   )
 }
 
+# resource "aws_lb" "test" {
+#   name               = "dev-lb"
+#   internal           = false
+#   load_balancer_type = "application"
+#   security_groups    = [aws_security_group.bastion_sg.id]
+#   #subnets            = [for subnet in aws_subnet.public_subnet_ids : subnet.id]
+
+#   enable_deletion_protection = true
+
+#   access_logs {
+#     bucket  = "group8-dev"
+#     prefix  = "Group8-Project"
+#     enabled = true
+#   }
+
+#   tags = {
+#     Environment = "dev"
+#   }
+# }
