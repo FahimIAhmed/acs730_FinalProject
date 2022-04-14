@@ -74,6 +74,7 @@ resource "aws_autoscaling_group" "autoscaling_group" {
   name                      = "autoscaling_group"
   max_size                  = 4
   min_size                  = 1
+  desired_capacity          = 2
   health_check_grace_period = 30
   health_check_type         = "EC2"
   termination_policies      = ["Default"]
