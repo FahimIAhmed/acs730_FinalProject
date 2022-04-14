@@ -131,7 +131,7 @@ resource "aws_cloudwatch_metric_alarm" "alarm_cpu_scale_in" {
   statistic           = "Average"
   threshold           = "5"
   alarm_actions = [
-    "${aws_autoscaling_policy.scale_out_policy.arn}"
+    "${aws_autoscaling_policy.scale_in_policy.arn}"
   ]
   dimensions = {
     AutoScalingGroupName = "${aws_autoscaling_group.autoscaling_group.name}"
