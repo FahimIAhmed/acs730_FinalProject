@@ -36,7 +36,7 @@ variable "env" {
 #variable for vpc
 variable "vpc_id" {
   default     = "10.2.0.0/16"
-  description = "aws vpc "
+  description = "aws vpc"
   type        = string
 }
 
