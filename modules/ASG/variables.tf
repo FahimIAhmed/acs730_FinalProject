@@ -14,6 +14,14 @@ variable "default_tags" {
   type        = map(any)
   description = "Default tags to be applied to all AWS resources"
 }
+
+#path to key for the instances 
+variable "path_to_publickey" {
+  default     = "/home/ec2-user/.ssh/id_rsa.pub"
+  description = "Path to the public key to use in Linux VMs provisioning"
+  type        = string
+}
+
 #prefix variable for the resources
 variable "prefix" {
   default     = "Group-8-Project"
