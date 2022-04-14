@@ -19,6 +19,3 @@ output "private_cidr_blocks" {
   value = aws_subnet.private_subnet[*].cidr_block
 }
 
-output "alb-endpoint" {
-  value = aws_lb.appln-lb.dns_name
-}

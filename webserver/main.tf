@@ -7,9 +7,9 @@ module "web-mod" {
   default_tags        = var.default_tags
 }
 
-module "sec-gp" {
-  source       = "../modules/security_groups"
-  env          = var.env
-  prefix       = var.prefix
-  default_tags = var.default_tags
-}
+# module "sec-gp" {
+#   source       = "../modules/security_groups"
+#   env          = var.env
+#   prefix       = var.prefix
+#   default_tags = var.default_tags
+# }

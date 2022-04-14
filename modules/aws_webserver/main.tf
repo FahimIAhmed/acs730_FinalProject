@@ -48,26 +48,40 @@ resource "aws_instance" "Group8-Dev" {
   key_name          = aws_key_pair.dev_key.key_name
   availability_zone = data.aws_availability_zones.available.names[count.index]
   subnet_id         = data.terraform_remote_state.network.outputs.private_subnet_id[count.index]
-  #security_groups             = [aws_security_group.private_sg.id]
+  security_groups             = [aws_security_group.private_sg.id]
   associate_public_ip_address = true
-  user_data = templatefile("${path.module}/install_httpd.sh",
-    {
-      env    = upper(var.env),
-      prefix = upper(local.prefix)
-    }
-  )
+  # user_data = templatefile("${path.module}/install_httpd.sh",
+  #   {
+  #     env    = upper(var.env),
+  #     prefix = upper(local.prefix)
+  #   }
+  # )
+  
+  
+  user_data = <<EOF
+#!/bin/bash
+yum -y update
+yum -y install httpd
+#echo "<h1>Welcome to ACS730 Week 4! i am kajal . My private IP is $myip</h2><br>Built by Terraform!"  >  /var/www/html/index.html
+echo "<h1>Welcome to ACS730 group 8 project.</h1> <h1>Team members are "Deepshikha, Kajal, Fahim, May"</h1>" /var/www/html/index.html
+#sudo systemctl httpd start
+#sudo systemctl httpd enable
+sudo systemctl start httpd
+sudo systemctl enable httpd
+EOF
+  
 
-  root_block_device {
-    encrypted = var.env == "prod" ? true : false
-  }
+  # root_block_device {
+  #   encrypted = var.env == "prod" ? true : false
+  # }
 
-  lifecycle {
-    create_before_destroy = true
-  }
+  # lifecycle {
+  #   create_before_destroy = true
+  # }
 
   tags = merge(local.default_tags,
     {
-      "Name" = "${var.prefix}-NonProdVM${count.index}"
+      "Name" = "${var.prefix}-Dev-VM-${count.index}"
     }
   )
 }
@@ -80,7 +94,7 @@ resource "aws_instance" "bastion_instance" {
   ami           = data.aws_ami.latest_amazon_linux.id
   key_name      = aws_key_pair.dev_key.key_name
   subnet_id     = data.terraform_remote_state.network.outputs.public_subnet_ids[1]
-  #security_groups             = [aws_security_group.bastion_sg.id]
+  security_groups             = [aws_security_group.bastion_sg.id]
   associate_public_ip_address = true
 
   root_block_device {
@@ -106,6 +120,81 @@ resource "aws_key_pair" "dev_key" {
     Name = "${var.prefix}-keypair"
     },
     var.default_tags
+  )
+}
+
+
+# Security Group
+resource "aws_security_group" "bastion_sg" {
+  name        = "BastionSG"
+  description = "Allow SSH inbound traffic"
+  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
+  
+  ingress {
+    description = "HTTP from Bastion"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+  }
+
+  ingress {
+    description      = "SSH from everywhere"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${local.name_prefix}-bastion-sg"
+    }
+  )
+}
+
+resource "aws_security_group" "private_sg" {
+  name        = "Dev"
+  description = "Allow HTTP and SSH inbound traffic"
+  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
+  ingress {
+    description = "HTTP from Bastion"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+  }
+
+  ingress {
+    description = "SSH from Bastion"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+  }
+
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${local.name_prefix}-private-vm-sg"
+    }
   )
 }
 
@@ -149,8 +238,8 @@ resource "aws_lb" "appln-lb" {
   name                       = "appln-lb"
   internal                   = false
   load_balancer_type         = "application"
-  #security_groups            = data.terraform_remote_state.network.outputs.bastion_sg[1]
-  subnets                    = data.terraform_remote_state.network.outputs.public_subnet_ids
+  security_groups            =  [aws_security_group.bastion_sg.id]
+  subnets                    = data.terraform_remote_state.network.outputs.private_subnet_id
   enable_deletion_protection = false
   depends_on                 = [aws_lb_target_group.tg-1]
   tags = {

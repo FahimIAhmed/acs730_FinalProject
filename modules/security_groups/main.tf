@@ -29,72 +29,72 @@ data "terraform_remote_state" "network" {
   }
 }
 
-# Security Group
-resource "aws_security_group" "bastion_sg" {
-  name        = "BastionSG"
-  description = "Allow SSH inbound traffic"
-  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
+# # Security Group
+# resource "aws_security_group" "bastion_sg" {
+#   name        = "BastionSG"
+#   description = "Allow SSH inbound traffic"
+#   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
 
 
-  ingress {
-    description      = "SSH from everywhere"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
+#   ingress {
+#     description      = "SSH from everywhere"
+#     from_port        = 22
+#     to_port          = 22
+#     protocol         = "tcp"
+#     cidr_blocks      = ["0.0.0.0/0"]
+#     ipv6_cidr_blocks = ["::/0"]
+#   }
 
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
+#   egress {
+#     from_port        = 0
+#     to_port          = 0
+#     protocol         = "-1"
+#     cidr_blocks      = ["0.0.0.0/0"]
+#     ipv6_cidr_blocks = ["::/0"]
+#   }
 
-  tags = merge(local.default_tags,
-    {
-      "Name" = "${local.name_prefix}-bastion-sg"
-    }
-  )
-}
+#   tags = merge(local.default_tags,
+#     {
+#       "Name" = "${local.name_prefix}-bastion-sg"
+#     }
+#   )
+# }
 
-resource "aws_security_group" "private_sg" {
-  name        = "Dev"
-  description = "Allow HTTP and SSH inbound traffic"
-  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
-  ingress {
-    description = "HTTP from Bastion"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
-  }
+# resource "aws_security_group" "private_sg" {
+#   name        = "Dev"
+#   description = "Allow HTTP and SSH inbound traffic"
+#   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
+#   ingress {
+#     description = "HTTP from Bastion"
+#     from_port   = 80
+#     to_port     = 80
+#     protocol    = "tcp"
+#     cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+#   }
 
-  ingress {
-    description = "SSH from Bastion"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
-  }
+#   ingress {
+#     description = "SSH from Bastion"
+#     from_port   = 22
+#     to_port     = 22
+#     protocol    = "tcp"
+#     cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+#   }
 
 
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
+#   egress {
+#     from_port        = 0
+#     to_port          = 0
+#     protocol         = "-1"
+#     cidr_blocks      = ["0.0.0.0/0"]
+#     ipv6_cidr_blocks = ["::/0"]
+#   }
 
-  tags = merge(local.default_tags,
-    {
-      "Name" = "${local.name_prefix}-private-vm-sg"
-    }
-  )
-}
+#   tags = merge(local.default_tags,
+#     {
+#       "Name" = "${local.name_prefix}-private-vm-sg"
+#     }
+#   )
+# }
 
 # resource "aws_lb" "test" {
 #   name               = "dev-lb"

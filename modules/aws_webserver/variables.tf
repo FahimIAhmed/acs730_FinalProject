@@ -19,7 +19,7 @@ variable "linux_instance_type" {
 
 #path to key for the instances 
 variable "path_to_publickey" {
-  default     = "/home/ec2-user/.ssh/id_rsa.pub"
+  default     = "/home/ec2-user/.ssh/dev_key.pub"
   description = "Path to the public key to use in Linux VMs provisioning"
   type        = string
 }
