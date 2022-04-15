@@ -11,8 +11,8 @@ data "aws_availability_zones" "available" {
 
 # Create a new VPC 
 resource "aws_vpc" "main" {
-  cidr_block       = var.vpc_cidr
-  instance_tenancy = "default"
+  cidr_block = var.vpc_cidr
+  # instance_tenancy = "default"
   tags = merge(
     var.default_tags, {
       Name = "${var.prefix}-vpc"
@@ -36,7 +36,7 @@ resource "aws_subnet" "public_subnet" {
 
 # Add provisioning of the private subnets in the custom VPC
 resource "aws_subnet" "private_subnet" {
-count             = length(var.private_cidr_block)
+  count             = length(var.private_cidr_block)
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_cidr_block[count.index]
   availability_zone = data.aws_availability_zones.available.names[count.index]
@@ -94,7 +94,7 @@ resource "aws_nat_gateway" "nat-gw" {
 
 # Create elastic IP for NAT GW
 resource "aws_eip" "nat-eip" {
-  vpc   = true
+  vpc = true
   tags = {
     Name = "${var.prefix}-natgw"
   }
@@ -119,7 +119,48 @@ resource "aws_route" "private_route" {
 
 # Associate subnets with the custom route table
 resource "aws_route_table_association" "private_route_table_association" {
-count=length(aws_subnet.private_subnet[*].id)
+  count          = length(aws_subnet.private_subnet[*].id)
   route_table_id = aws_route_table.private_route_table.id
   subnet_id      = aws_subnet.private_subnet[count.index].id
 }
+
+
+
+resource "aws_lb" "load_balancer" {
+  name               = "test-lb-tf"
+  count              = 3
+  internal           = false
+  load_balancer_type = "application"
+  #availability_zone = data.aws_availability_zones.available.names[count.index]
+  #security_groups    = [aws_security_group.web_sg.id]
+  #security_groups = data.terraform_remote_state.network.outputs.web_sg.id
+  # subnets            = data.aws_availability_zones.available.names[count.index]
+  #subnets         = aws_subnet.public_subnet[0]
+    #security_groups = aws_security_group.web_sg.id
+
+  enable_deletion_protection = true
+
+  # data "terraform_remote_state" "network" { // This is to use Outputs from Remote State
+  #   backend = "s3"
+  #   config = {
+  #     bucket = "team-final-project"      // Bucket from where to GET Terraform State
+  #   # key    = "${var.env}-network/terraform.tfstate" 
+  #     key = "Network/terraform.tfstate"
+  #     // Object name in the bucket to GET Terraform State
+  #     region = "us-east-1"                            // Region where bucket created
+  #   }
+  # }
+
+  access_logs {
+    bucket = "team-final-project"
+    prefix  = "group8-dev"
+    enabled = true
+  }
+
+
+
+  tags = {
+    Name = "${var.prefix}-lb"
+  }
+}
+

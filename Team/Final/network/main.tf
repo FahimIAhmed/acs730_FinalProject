@@ -28,3 +28,11 @@ module "SG" {
   env    = var.env
   #aws_security_group =  "web_sg"
 }
+
+
+module "lb" {
+    source = "../../../modules/lb"
+ # env    = var.env
+  #aws_security_group =  "web_sg"
+}
+
