@@ -9,13 +9,22 @@ data "aws_availability_zones" "available" {
 }
 
 
-# Create a new VPC 
+#Resource for default VPC id
 resource "aws_vpc" "main" {
+<<<<<<< HEAD
   cidr_block = var.vpc_cidr
   # instance_tenancy = "default"
   tags = merge(
     var.default_tags, {
       Name = "${var.prefix}-vpc"
+=======
+  cidr_block       = var.vpc_id
+  instance_tenancy = "default"
+
+  tags = merge(var.default_tags,
+    {
+      "Name" = "${var.prefix}-${var.env}-vpc_cidr"
+>>>>>>> 93c2fcd3899c3ba76bd5ca6f6c4609dd489e7a44
     }
   )
 }
@@ -36,9 +45,13 @@ resource "aws_subnet" "public_subnet" {
 
 # Add provisioning of the private subnets in the custom VPC
 resource "aws_subnet" "private_subnet" {
+<<<<<<< HEAD
   count             = length(var.private_cidr_block)
+=======
+  count             = length(var.private_cidr_blocks)
+>>>>>>> 93c2fcd3899c3ba76bd5ca6f6c4609dd489e7a44
   vpc_id            = aws_vpc.main.id
-  cidr_block        = var.private_cidr_block[count.index]
+  cidr_block        = var.private_cidr_blocks[count.index]
   availability_zone = data.aws_availability_zones.available.names[count.index]
   tags = merge(
     var.default_tags, {
@@ -124,6 +137,7 @@ resource "aws_route_table_association" "private_route_table_association" {
   subnet_id      = aws_subnet.private_subnet[count.index].id
 }
 
+<<<<<<< HEAD
 
 
 resource "aws_lb" "load_balancer" {
@@ -164,3 +178,5 @@ resource "aws_lb" "load_balancer" {
   }
 }
 
+=======
+>>>>>>> 93c2fcd3899c3ba76bd5ca6f6c4609dd489e7a44

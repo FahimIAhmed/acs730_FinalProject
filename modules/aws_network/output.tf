@@ -15,6 +15,7 @@ output "public_cidr_blocks" {
   value = aws_subnet.public_subnet[*].cidr_block
 }
 
-output "private_cidr_block" {
+output "private_cidr_blocks" {
   value = aws_subnet.private_subnet[*].cidr_block
 }
+
