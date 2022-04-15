@@ -34,7 +34,7 @@ module "globalvars" {
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "group-8-project"                // Bucket where to SAVE Terraform State
+    bucket = "group-8-project"               // Bucket where to SAVE Terraform State
     key    = "dev/network/terraform.tfstate" // Object name in the bucket to SAVE Terraform State
     region = "us-east-1"                     // Region where bucket is created
   }
@@ -204,6 +204,7 @@ resource "aws_lb_target_group" "tg-1" {
   name                          = "lb-tg-1"
   port                          = 80
   protocol                      = "HTTP"
+  target_type                   = "ip"
   vpc_id                        = data.terraform_remote_state.network.outputs.vpc_id
   load_balancing_algorithm_type = "round_robin"
   deregistration_delay          = 60
@@ -247,7 +248,6 @@ resource "aws_lb" "appln-lb" {
     Name = "${var.prefix}-appln-lb"
   }
 }
-
 
 
 resource "aws_lb_listener" "listner" {
