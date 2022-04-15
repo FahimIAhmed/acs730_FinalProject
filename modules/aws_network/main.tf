@@ -9,25 +9,26 @@ data "aws_availability_zones" "available" {
 }
 
 
+# Define tags locally
+locals {
+  default_tags = merge(var.default_tags, { "env" = var.env })
+  name_prefix  = "${var.prefix}-${var.env}"
+}
+
 #Resource for default VPC id
 resource "aws_vpc" "main" {
-<<<<<<< HEAD
-  cidr_block = var.vpc_cidr
-  # instance_tenancy = "default"
-  tags = merge(
-    var.default_tags, {
-      Name = "${var.prefix}-vpc"
-=======
-  cidr_block       = var.vpc_id
+
+  cidr_block       = var.vpc_cidr
   instance_tenancy = "default"
 
   tags = merge(var.default_tags,
     {
       "Name" = "${var.prefix}-${var.env}-vpc_cidr"
->>>>>>> 93c2fcd3899c3ba76bd5ca6f6c4609dd489e7a44
+
     }
   )
 }
+
 
 
 # Add provisioning of the public subnetin the default VPC
@@ -45,11 +46,8 @@ resource "aws_subnet" "public_subnet" {
 
 # Add provisioning of the private subnets in the custom VPC
 resource "aws_subnet" "private_subnet" {
-<<<<<<< HEAD
-  count             = length(var.private_cidr_block)
-=======
+
   count             = length(var.private_cidr_blocks)
->>>>>>> 93c2fcd3899c3ba76bd5ca6f6c4609dd489e7a44
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_cidr_blocks[count.index]
   availability_zone = data.aws_availability_zones.available.names[count.index]
@@ -61,122 +59,155 @@ resource "aws_subnet" "private_subnet" {
   )
 }
 
+# # Create Internet Gateway
+# resource "aws_internet_gateway" "igw" {
+#   vpc_id = aws_vpc.main.id
+
+#   tags = merge(var.default_tags,
+#     {
+#       "Name" = "${var.prefix}-igw"
+#     }
+#   )
+# }
+
+# # Route table to route add default gateway pointing to Internet Gateway (IGW)
+# resource "aws_route_table" "public_route_table" {
+#   vpc_id = aws_vpc.main.id
+#   route {
+#     cidr_block = "0.0.0.0/0"
+#     gateway_id = aws_internet_gateway.igw.id
+#   }
+#   tags = {
+#     Name = "${var.prefix}-route-public-route_table"
+#   }
+# }
+
+# # Associate subnets with the custom route table
+# resource "aws_route_table_association" "public_route_table_association" {
+#   count          = length(aws_subnet.public_subnet[*].id)
+#   route_table_id = aws_route_table.public_route_table.id
+#   subnet_id      = aws_subnet.public_subnet[count.index].id
+# }
+
+# #Create NAT GW
+# resource "aws_nat_gateway" "nat-gw" {
+#   allocation_id = aws_eip.nat-eip.id
+#   subnet_id     = aws_subnet.public_subnet[1].id
+
+#   tags = {
+#     Name = "${var.prefix}-natgw"
+#   }
+
+#   # To ensure proper ordering, it is recommended to add an explicit dependency
+#   # on the Internet Gateway for the VPC.
+#   depends_on = [aws_internet_gateway.igw]
+# }
+
+# # Create elastic IP for NAT GW
+# resource "aws_eip" "nat-eip" {
+#   vpc = true
+#   tags = {
+#     Name = "${var.prefix}-natgw"
+#   }
+
+# }
+
+# # Route table to route add default gateway pointing to NAT Gateway (NATGW)
+# resource "aws_route_table" "private_route_table" {
+#   vpc_id = aws_vpc.main.id
+#   count  = "${length(var.private_cidr_blocks)}"
+#   tags = {
+#     Name = "${var.prefix}-route-private-route_table",
+#     Tier = "Private"
+#   }
+# }
+
+# # Add route to NAT GW if we created public subnets
+# resource "aws_route" "private_route" {
+#   route_table_id         = aws_route_table.private_route_table.id
+#   count          = "${length(var.private_cidr_blocks)}"
+#   destination_cidr_block = "0.0.0.0/0"
+#   gateway_id             = aws_nat_gateway.nat-gw.id
+# }
+
+# # Associate subnets with the custom route table
+# resource "aws_route_table_association" "private_route_table_association" {
+#   count          = length(aws_subnet.private_subnet[*].id)
+#   route_table_id = aws_route_table.private_route_table.id
+#   subnet_id      = aws_subnet.private_subnet[count.index].id
+# }
+
 # Create Internet Gateway
 resource "aws_internet_gateway" "igw" {
+  count  = var.env == "dev" ? 1 : 0
   vpc_id = aws_vpc.main.id
 
-  tags = merge(var.default_tags,
+  tags = merge(local.default_tags,
     {
-      "Name" = "${var.prefix}-igw"
+      "Name" = "${local.name_prefix}-igw"
+    }
+  )
+}
+# Route table to route add default gateway pointing to Internet Gateway (IGW)
+resource "aws_route_table" "public_subnet_route_table" {
+  count  = var.env == "dev" ? 1 : 0
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw[0].id
+  }
+  tags = {
+    Name = "${local.name_prefix}-public-route_table"
+  }
+}
+
+
+# Associate subnets with the custom route table
+resource "aws_route_table_association" "public_subnet_routes" {
+  count          = length(aws_subnet.public_subnet[*].id)
+  route_table_id = aws_route_table.public_subnet_route_table[0].id
+  subnet_id      = aws_subnet.public_subnet[count.index].id
+}
+resource "aws_eip" "dev_eip" {
+  count = var.env == "dev" ? 1 : 0
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${local.name_prefix}-${var.env}-eip"
     }
   )
 }
 
-# Route table to route add default gateway pointing to Internet Gateway (IGW)
-resource "aws_route_table" "public_route_table" {
-  vpc_id = aws_vpc.main.id
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
-  tags = {
-    Name = "${var.prefix}-route-public-route_table"
-  }
+resource "aws_nat_gateway" "nat_gateway" {
+  count         = var.env == "dev" ? 1 : 0
+  allocation_id = aws_eip.dev_eip[0].id
+  subnet_id     = aws_subnet.public_subnet[0].id
+
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${local.name_prefix}-${var.env}-nat_gateway"
+    }
+  )
 }
 
-# Associate subnets with the custom route table
-resource "aws_route_table_association" "public_route_table_association" {
-  count          = length(aws_subnet.public_subnet[*].id)
-  route_table_id = aws_route_table.public_route_table.id
-  subnet_id      = aws_subnet.public_subnet[count.index].id
-}
-
-#Create NAT GW
-resource "aws_nat_gateway" "nat-gw" {
-  allocation_id = aws_eip.nat-eip.id
-  subnet_id     = aws_subnet.public_subnet[1].id
-
-  tags = {
-    Name = "${var.prefix}-natgw"
-  }
-
-  # To ensure proper ordering, it is recommended to add an explicit dependency
-  # on the Internet Gateway for the VPC.
-  depends_on = [aws_internet_gateway.igw]
-}
-
-# Create elastic IP for NAT GW
-resource "aws_eip" "nat-eip" {
-  vpc = true
-  tags = {
-    Name = "${var.prefix}-natgw"
-  }
-
-}
-
-# Route table to route add default gateway pointing to NAT Gateway (NATGW)
-resource "aws_route_table" "private_route_table" {
+# Route table to add route for private subnets to nat gateway
+resource "aws_route_table" "private_subnet_route_table" {
   vpc_id = aws_vpc.main.id
   tags = {
-    Name = "${var.prefix}-route-private-route_table",
-    Tier = "Private"
+    Name = "${local.name_prefix}-${var.env}-private-route_table"
   }
 }
 
-# Add route to NAT GW if we created public subnets
-resource "aws_route" "private_route" {
-  route_table_id         = aws_route_table.private_route_table.id
+resource "aws_route" "non-prod_routes" {
+  count                  = var.env == "dev" ? 1 : 0
+  route_table_id         = aws_route_table.private_subnet_route_table.id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_nat_gateway.nat-gw.id
+  nat_gateway_id         = aws_nat_gateway.nat_gateway[0].id
+  depends_on             = [aws_route_table.private_subnet_route_table]
 }
 
-# Associate subnets with the custom route table
-resource "aws_route_table_association" "private_route_table_association" {
+# Associate private-subnets with the custom route table
+resource "aws_route_table_association" "private_subnet_route" {
   count          = length(aws_subnet.private_subnet[*].id)
-  route_table_id = aws_route_table.private_route_table.id
+  route_table_id = aws_route_table.private_subnet_route_table.id
   subnet_id      = aws_subnet.private_subnet[count.index].id
 }
-
-<<<<<<< HEAD
-
-
-resource "aws_lb" "load_balancer" {
-  name               = "test-lb-tf"
-  count              = 3
-  internal           = false
-  load_balancer_type = "application"
-  #availability_zone = data.aws_availability_zones.available.names[count.index]
-  #security_groups    = [aws_security_group.web_sg.id]
-  #security_groups = data.terraform_remote_state.network.outputs.web_sg.id
-  # subnets            = data.aws_availability_zones.available.names[count.index]
-  #subnets         = aws_subnet.public_subnet[0]
-    #security_groups = aws_security_group.web_sg.id
-
-  enable_deletion_protection = true
-
-  # data "terraform_remote_state" "network" { // This is to use Outputs from Remote State
-  #   backend = "s3"
-  #   config = {
-  #     bucket = "team-final-project"      // Bucket from where to GET Terraform State
-  #   # key    = "${var.env}-network/terraform.tfstate" 
-  #     key = "Network/terraform.tfstate"
-  #     // Object name in the bucket to GET Terraform State
-  #     region = "us-east-1"                            // Region where bucket created
-  #   }
-  # }
-
-  access_logs {
-    bucket = "team-final-project"
-    prefix  = "group8-dev"
-    enabled = true
-  }
-
-
-
-  tags = {
-    Name = "${var.prefix}-lb"
-  }
-}
-
-=======
->>>>>>> 93c2fcd3899c3ba76bd5ca6f6c4609dd489e7a44

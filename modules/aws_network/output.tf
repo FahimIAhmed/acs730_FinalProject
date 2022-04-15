@@ -19,3 +19,16 @@ output "private_cidr_blocks" {
   value = aws_subnet.private_subnet[*].cidr_block
 }
 
+
+
+output "private_route_table" {
+  value = aws_route_table.private_subnet_route_table[*].id
+}
+
+output "public_route_table" {
+  value = aws_route_table.public_subnet_route_table[*].id
+}
+
+output "prod_vpc_cidr" {
+  value = aws_vpc.main.cidr_block
+}

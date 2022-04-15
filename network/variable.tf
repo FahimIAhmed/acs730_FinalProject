@@ -15,17 +15,20 @@ variable "prefix" {
   type        = string
 }
 
+#variable for public cidr block
 variable "public_cidr_blocks" {
-  default     = ["10.2.1.0/24", "10.2.2.0/24", "10.2.0.0/24"]
+  default     = ["10.100.1.0/24", "10.100.2.0/24", "10.100.0.0/24"]
   description = "private cidrs"
   type        = list(string)
 }
 #variable for private cidr block
 variable "private_cidr_blocks" {
-  default     = ["10.2.3.0/24", "10.2.4.0/24", "10.2.5.0/24"]
+  default     = ["10.100.3.0/24", "10.100.4.0/24", "10.100.5.0/24"]
   description = "private cidrs"
   type        = list(string)
 }
+
+
 # Variable to signal the current environment 
 variable "env" {
   default     = "dev"
@@ -35,7 +38,7 @@ variable "env" {
 
 #variable for vpc
 variable "vpc_id" {
-  default     = "10.2.0.0/16"
+  default     = "10.100.0.0/16"
   description = "aws vpc"
   type        = string
 }

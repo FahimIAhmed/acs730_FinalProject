@@ -34,7 +34,7 @@ module "globalvars" {
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "dev-group-8-ds"                    // Bucket where to SAVE Terraform State
+    bucket = "group-8-project"                // Bucket where to SAVE Terraform State
     key    = "dev/network/terraform.tfstate" // Object name in the bucket to SAVE Terraform State
     region = "us-east-1"                     // Region where bucket is created
   }
@@ -42,12 +42,12 @@ data "terraform_remote_state" "network" {
 
 #ceating the ec2 instances
 resource "aws_instance" "Group8-Dev" {
-  count             = var.linux_VMs
-  instance_type     = var.linux_instance_type
-  ami               = data.aws_ami.latest_amazon_linux.id
-  key_name          = aws_key_pair.dev_key.key_name
-  availability_zone = data.aws_availability_zones.available.names[count.index]
-  subnet_id         = data.terraform_remote_state.network.outputs.private_subnet_id[0]
+  count                       = var.linux_VMs
+  instance_type               = var.linux_instance_type
+  ami                         = data.aws_ami.latest_amazon_linux.id
+  key_name                    = aws_key_pair.dev_key.key_name
+  availability_zone           = data.aws_availability_zones.available.names[count.index]
+  subnet_id                   = data.terraform_remote_state.network.outputs.private_subnet_id[count.index]
   security_groups             = [aws_security_group.private_sg.id]
   associate_public_ip_address = true
   # user_data = templatefile("${path.module}/install_httpd.sh",
@@ -56,8 +56,8 @@ resource "aws_instance" "Group8-Dev" {
   #     prefix = upper(local.prefix)
   #   }
   # )
-  
-  
+
+
   user_data = <<EOF
 #!/bin/bash
 yum -y update
@@ -69,7 +69,7 @@ echo "<h1>Welcome to ACS730 group 8 project.</h1> <h1>Team members are "Deepshik
 sudo systemctl start httpd
 sudo systemctl enable httpd
 EOF
-  
+
 
   # root_block_device {
   #   encrypted = var.env == "prod" ? true : false
@@ -91,10 +91,10 @@ EOF
 #creating bastion instance_tenancy
 resource "aws_instance" "bastion_instance" {
 
-  instance_type = var.bastion
-  ami           = data.aws_ami.latest_amazon_linux.id
-  key_name      = aws_key_pair.dev_key.key_name
-  subnet_id     = data.terraform_remote_state.network.outputs.public_subnet_ids[1]
+  instance_type               = var.bastion
+  ami                         = data.aws_ami.latest_amazon_linux.id
+  key_name                    = aws_key_pair.dev_key.key_name
+  subnet_id                   = data.terraform_remote_state.network.outputs.public_subnet_ids[1]
   security_groups             = [aws_security_group.bastion_sg.id]
   associate_public_ip_address = true
 
@@ -130,7 +130,7 @@ resource "aws_security_group" "bastion_sg" {
   name        = "BastionSG"
   description = "Allow SSH inbound traffic"
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
-  
+
   ingress {
     description = "HTTP from Bastion"
     from_port   = 80
@@ -211,7 +211,7 @@ resource "aws_lb_target_group" "tg-1" {
     enabled         = false
     type            = "lb_cookie"
     cookie_duration = 60
-    
+
   }
 
   health_check {
@@ -227,7 +227,7 @@ resource "aws_lb_target_group" "tg-1" {
   lifecycle {
     create_before_destroy = true
   }
-  
+
   tags = merge(local.default_tags,
     {
       "Name" = "${local.name_prefix}-target-group"
@@ -239,7 +239,7 @@ resource "aws_lb" "appln-lb" {
   name                       = "appln-lb"
   internal                   = false
   load_balancer_type         = "application"
-  security_groups            =  [aws_security_group.private_sg.id]
+  security_groups            = [aws_security_group.private_sg.id]
   subnets                    = data.terraform_remote_state.network.outputs.private_subnet_id
   enable_deletion_protection = false
   depends_on                 = [aws_lb_target_group.tg-1]
