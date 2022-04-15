@@ -34,7 +34,7 @@ module "globalvars" {
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "dev-group-8"                    // Bucket where to SAVE Terraform State
+    bucket = "dev-group-8-ds"                    // Bucket where to SAVE Terraform State
     key    = "dev/network/terraform.tfstate" // Object name in the bucket to SAVE Terraform State
     region = "us-east-1"                     // Region where bucket is created
   }
@@ -47,7 +47,7 @@ resource "aws_instance" "Group8-Dev" {
   ami               = data.aws_ami.latest_amazon_linux.id
   key_name          = aws_key_pair.dev_key.key_name
   availability_zone = data.aws_availability_zones.available.names[count.index]
-  subnet_id         = data.terraform_remote_state.network.outputs.private_subnet_id[count.index]
+  subnet_id         = data.terraform_remote_state.network.outputs.private_subnet_id[0]
   security_groups             = [aws_security_group.private_sg.id]
   associate_public_ip_address = true
   # user_data = templatefile("${path.module}/install_httpd.sh",
@@ -90,6 +90,7 @@ EOF
 
 #creating bastion instance_tenancy
 resource "aws_instance" "bastion_instance" {
+
   instance_type = var.bastion
   ami           = data.aws_ami.latest_amazon_linux.id
   key_name      = aws_key_pair.dev_key.key_name
@@ -238,7 +239,7 @@ resource "aws_lb" "appln-lb" {
   name                       = "appln-lb"
   internal                   = false
   load_balancer_type         = "application"
-  security_groups            =  [aws_security_group.bastion_sg.id]
+  security_groups            =  [aws_security_group.private_sg.id]
   subnets                    = data.terraform_remote_state.network.outputs.private_subnet_id
   enable_deletion_protection = false
   depends_on                 = [aws_lb_target_group.tg-1]
@@ -294,9 +295,4 @@ resource "aws_lb_listener_rule" "rule-1" {
     }
   )
 }
-
-
-
-
-
 
