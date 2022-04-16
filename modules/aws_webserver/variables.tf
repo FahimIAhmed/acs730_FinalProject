@@ -1,9 +1,9 @@
 #variable for linux virtual machines
-variable "linux_VMs" {
-  default     = 3
-  description = "Number of Linux VMs to provision"
-  type        = number
-}
+# variable "linux_VMs" {
+#   default     = 3
+#   description = "Number of Linux VMs to provision"
+#   type        = number
+# }
 #variable for bastion
 variable "bastion" {
   default     = "t3.micro"

@@ -181,7 +181,6 @@ resource "aws_nat_gateway" "nat_gateway" {
   count         = var.env == "dev" ? 1 : 0
   allocation_id = aws_eip.dev_eip[0].id
   subnet_id     = aws_subnet.public_subnet[0].id
-
   tags = merge(local.default_tags,
     {
       "Name" = "${local.name_prefix}-${var.env}-nat_gateway"

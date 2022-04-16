@@ -41,49 +41,42 @@ data "terraform_remote_state" "network" {
 }
 
 #ceating the ec2 instances
-resource "aws_instance" "Group8-Dev" {
-  count                       = var.linux_VMs
+resource "aws_launch_configuration" "Group8-Dev" {
+  #count                       = var.linux_VMs
   instance_type               = var.linux_instance_type
-  ami                         = data.aws_ami.latest_amazon_linux.id
+  image_id                    = "ami-03ededff12e34e59e"
   key_name                    = aws_key_pair.dev_key.key_name
-  availability_zone           = data.aws_availability_zones.available.names[count.index]
-  subnet_id                   = data.terraform_remote_state.network.outputs.private_subnet_id[count.index]
   security_groups             = [aws_security_group.private_sg.id]
   associate_public_ip_address = true
-  # user_data = templatefile("${path.module}/install_httpd.sh",
-  #   {
-  #     env    = upper(var.env),
-  #     prefix = upper(local.prefix)
-  #   }
-  # )
-
-
-  user_data = <<EOF
-#!/bin/bash
-yum -y update
-yum -y install httpd
-#echo "<h1>Welcome to ACS730 Week 4! i am kajal . My private IP is $myip</h2><br>Built by Terraform!"  >  /var/www/html/index.html
-echo "<h1>Welcome to ACS730 group 8 project.</h1> <h1>Team members are "Deepshikha, Kajal, Fahim, May"</h1>" /var/www/html/index.html
-#sudo systemctl httpd start
-#sudo systemctl httpd enable
-sudo systemctl start httpd
-sudo systemctl enable httpd
-EOF
-
-
-  # root_block_device {
-  #   encrypted = var.env == "prod" ? true : false
-  # }
-
-  # lifecycle {
-  #   create_before_destroy = true
-  # }
-
-  tags = merge(local.default_tags,
+  user_data = templatefile("${path.module}/install_httpd.sh",
     {
-      "Name" = "${var.prefix}-Dev-VM-${count.index}"
+      env    = upper(var.env),
+      prefix = upper(local.prefix)
     }
   )
+
+
+  #   user_data = <<EOF
+  # #!/bin/bash
+  # yum -y update
+  # yum -y install httpd
+  # #echo "<h1>Welcome to ACS730 Week 4! i am kajal . My private IP is $myip</h2><br>Built by Terraform!"  >  /var/www/html/index.html
+  # echo "<h1>Welcome to ACS730 group 8 project.</h1> <h1>Team members are "Deepshikha, Kajal, Fahim, May"</h1>" /var/www/html/index.html
+  # #sudo systemctl httpd start
+  # #sudo systemctl httpd enable
+  # sudo systemctl start httpd
+  # sudo systemctl enable httpd
+  # }
+  # #
+
+
+  root_block_device {
+    encrypted = var.env == "prod" ? true : false
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 
@@ -168,22 +161,24 @@ resource "aws_security_group" "private_sg" {
   description = "Allow HTTP and SSH inbound traffic"
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
   ingress {
-    description = "HTTP from Bastion"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+    description      = "HTTP from Bastion"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
   }
+
 
   ingress {
-    description = "SSH from Bastion"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+    description      = "SSH from Bastion"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+
   }
-
-
   egress {
     from_port        = 0
     to_port          = 0
@@ -200,11 +195,12 @@ resource "aws_security_group" "private_sg" {
 }
 
 
+
 resource "aws_lb_target_group" "tg-1" {
   name                          = "lb-tg-1"
   port                          = 80
   protocol                      = "HTTP"
-  target_type                   = "ip"
+  target_type                   = "instance"
   vpc_id                        = data.terraform_remote_state.network.outputs.vpc_id
   load_balancing_algorithm_type = "round_robin"
   deregistration_delay          = 60
@@ -243,7 +239,6 @@ resource "aws_lb" "appln-lb" {
   security_groups            = [aws_security_group.private_sg.id]
   subnets                    = data.terraform_remote_state.network.outputs.private_subnet_id
   enable_deletion_protection = false
-  depends_on                 = [aws_lb_target_group.tg-1]
   tags = {
     Name = "${var.prefix}-appln-lb"
   }
@@ -251,48 +246,38 @@ resource "aws_lb" "appln-lb" {
 
 
 resource "aws_lb_listener" "listner" {
-
   load_balancer_arn = aws_lb.appln-lb.id
   port              = 80
   protocol          = "HTTP"
   default_action {
-    type = "fixed-response"
-    fixed_response {
-      content_type = "text/plain"
-      message_body = " Site Not Found"
-      status_code  = "200"
-    }
-  }
-
-  depends_on = [aws_lb.appln-lb]
-  tags = merge(local.default_tags,
-    {
-      "Name" = "${local.name_prefix}-listner"
-    }
-  )
-}
-
-
-
-resource "aws_lb_listener_rule" "rule-1" {
-
-  listener_arn = aws_lb_listener.listner.id
-  priority     = 100
-
-  action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.tg-1.arn
+    target_group_arn = aws_lb_target_group.tg-1.id
   }
-
-  condition {
-    host_header {
-      values = ["version1.anandg.xyz"]
-    }
-  }
-  tags = merge(local.default_tags,
-    {
-      "Name" = "${local.name_prefix}-Bastion"
-    }
-  )
 }
 
+
+# Auto Scaling Group
+resource "aws_autoscaling_group" "asg-dev" {
+  name                 = "autoscaling group for project"
+  min_size             = 1
+  max_size             = 4
+  desired_capacity     = 2
+  launch_configuration = aws_launch_configuration.Group8-Dev.name
+  vpc_zone_identifier  = [data.terraform_remote_state.network.outputs.private_subnet_id[0], data.terraform_remote_state.network.outputs.private_subnet_id[1], data.terraform_remote_state.network.outputs.private_subnet_id[2]]
+  depends_on           = [aws_lb.appln-lb]
+  target_group_arns    = [aws_lb_target_group.tg-1.arn]
+}
+
+#creating policy simultaneously
+
+resource "aws_autoscaling_policy" "asg_policy" {
+  autoscaling_group_name = aws_autoscaling_group.asg-dev.name
+  name                   = "autoscaling"
+  policy_type            = "TargetTrackingScaling"
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value = 10
+  }
+}
