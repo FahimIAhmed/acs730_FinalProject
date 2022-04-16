@@ -33,7 +33,7 @@ module "globalvars" {
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "dev-group-8"                   // Bucket where to SAVE Terraform State
+    bucket = "group-8-project1"                   // Bucket where to SAVE Terraform State
     key    = "dev/network/terraform.tfstate" // Object name in the bucket to SAVE Terraform State
     region = "us-east-1"                     // Region where bucket is created
   }
@@ -62,7 +62,6 @@ resource "aws_launch_configuration" "autoscale_launchconfig" {
       prefix = upper(local.prefix)
     }
   )
-
   lifecycle {
     create_before_destroy = true
   }
@@ -70,20 +69,43 @@ resource "aws_launch_configuration" "autoscale_launchconfig" {
 
 # Creating the autoscaling group across 3 availability zones
 resource "aws_autoscaling_group" "autoscaling_group" {
-  availability_zones        = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  vpc_zone_identifier                    = data.terraform_remote_state.network.outputs.public_subnet_ids
+  #availability_zones        = ["us-east-1a", "us-east-1b", "us-east-1c"]
   name                      = "autoscaling_group"
   max_size                  = 4
   min_size                  = 1
   desired_capacity          = 2
-  health_check_grace_period = 30
-  health_check_type         = "EC2"
-  termination_policies      = ["Default"]
+  health_check_grace_period = 300
+  health_check_type         = "ELB"
+  #termination_policies      = ["Default"]
   launch_configuration      = aws_launch_configuration.autoscale_launchconfig.name
-
   lifecycle {
     create_before_destroy = true
+      }
+
+
+tag {
+  key = "Name"
+  value = "${local.name_prefix}-asg-instances"
+  propagate_at_launch = true
+}
+  
+  dynamic "tag" {
+    for_each = local.default_tags
+    content {
+      key = tag.key
+      value = tag. value
+      propagate_at_launch = true
+    }
   }
 }
+
+resource "aws_autoscaling_attachment" "asg_attachment" {
+  
+  lb_target_group_arn = aws_lb_target_group.tg-1.arn
+ autoscaling_group_name = aws_autoscaling_group.autoscaling_group.id
+ }
+  
 
 # Creating the autoscaling scale out policy
 resource "aws_autoscaling_policy" "scale_out_policy" {
@@ -140,4 +162,163 @@ resource "aws_cloudwatch_metric_alarm" "alarm_cpu_scale_in" {
 }
 
 
+
+
+resource "aws_lb_target_group" "tg-1" {
+  name                          = "lb-tg-1"
+  port                          = 80
+  protocol                      = "HTTP"
+  #target_type                   = "ip"
+  vpc_id                        = data.terraform_remote_state.network.outputs.vpc_id
+  #load_balancing_algorithm_type = "round_robin"
+  # deregistration_delay          = 60
+  # stickiness {
+  #   enabled         = false
+  #   type            = "lb_cookie"
+  #   cookie_duration = 60
+  # }
+
+  # health_check {
+  #   healthy_threshold   = 2
+  #   unhealthy_threshold = 2
+  #   interval            = 300
+  #   path                = "/"
+  #   protocol            = "HTTP"
+  #   matcher             = 200
+  # }
+
+  # lifecycle {
+  #   create_before_destroy = true
+  # }
+
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${local.name_prefix}-target-group"
+    }
+  )
+}
+
+resource "aws_lb" "appln-lb" {
+  name                       = "appln-lb"
+  internal                   = false
+  load_balancer_type         = "application"
+  ip_address_type            = "ipv4"
+  security_groups            = [aws_security_group.lb_sg.id]
+  subnets                    = data.terraform_remote_state.network.outputs.public_subnet_ids
+  enable_deletion_protection = false
+  #depends_on                 = [aws_lb_target_group.tg-1]
+  tags = {
+    Name = "${var.prefix}-appln-lb"
+  }
+}
+
+
+resource "aws_lb_listener" "listner" {
+
+  load_balancer_arn = aws_lb.appln-lb.id
+  port              = 80
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tg-1.arn
+    # fixed_response {
+    #   content_type = "text/plain"
+    #   message_body = " Site Not Found"
+    #   status_code  = "200"
+    # }
+  }
+
+  
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${local.name_prefix}-listner"
+    }
+  )
+}
+
+
+# resource "aws_alb_target_group_attachment" "Instance1" {
+#   target_group_arn = aws_lb_target_group.tg-1.arn
+#   target_id = aws_instance.Group8-Dev[0].private_ip
+# }
+
+
+# resource "aws_alb_target_group_attachment" "Instance2" {
+#   target_group_arn = aws_lb_target_group.tg-1.arn
+# target_id = aws_instance.Group8-Dev[1].private_ip
+# }
+
+
+# resource "aws_alb_target_group_attachment" "Instance3" {
+# target_group_arn = aws_lb_target_group.tg-1.arn
+# target_id = aws_instance.Group8-Dev[2].private_ip
+# }
+
+
+# resource "aws_lb_listener_rule" "rule-1" {
+
+#   listener_arn = aws_lb_listener.listner.id
+#   priority     = 100
+
+#   action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.tg-1.arn
+#   }
+
+#   condition {
+#     host_header {
+#       values = ["version1.anandg.xyz"]
+#     }
+#   }
+#   tags = merge(local.default_tags,
+#     {
+#       "Name" = "${local.name_prefix}-Bastion"
+#     }
+#   )
+# }
+
+
+resource "aws_security_group" "lb_sg" {
+
+name        = "allow_http"
+  description = "Allow HTTP traffic"
+  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
+
+  ingress {
+    description = "HTTP from everywhere"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    #cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+     cidr_blocks      = ["0.0.0.0/0"]
+     ipv6_cidr_blocks = ["::/0"]
+  }
+
+
+# ingress {
+#     description = "HTTP from everywhere"
+#     from_port   = 8088
+#     to_port     = 8088
+#     protocol    = "tcp"
+#     #cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+#     cidr_blocks      = ["0.0.0.0/0"]
+#     ipv6_cidr_blocks = ["::/0"]
+#   }
+
+
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${local.name_prefix}-lb-sg"
+    }
+  )
+}
   

@@ -34,13 +34,13 @@ module "globalvars" {
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket = "group-8-project"               // Bucket where to SAVE Terraform State
+    bucket = "group-8-project1"              // Bucket where to SAVE Terraform State
     key    = "dev/network/terraform.tfstate" // Object name in the bucket to SAVE Terraform State
     region = "us-east-1"                     // Region where bucket is created
   }
 }
 
-#ceating the ec2 instances
+#creating the ec2 instances
 resource "aws_instance" "Group8-Dev" {
   count                       = var.linux_VMs
   instance_type               = var.linux_instance_type
@@ -50,6 +50,7 @@ resource "aws_instance" "Group8-Dev" {
   subnet_id                   = data.terraform_remote_state.network.outputs.private_subnet_id[count.index]
   security_groups             = [aws_security_group.private_sg.id]
   associate_public_ip_address = true
+
   # user_data = templatefile("${path.module}/install_httpd.sh",
   #   {
   #     env    = upper(var.env),
@@ -167,12 +168,15 @@ resource "aws_security_group" "private_sg" {
   name        = "Dev"
   description = "Allow HTTP and SSH inbound traffic"
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
+
   ingress {
     description = "HTTP from Bastion"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+    # cidr_blocks      = ["0.0.0.0/0"]
+    # ipv6_cidr_blocks = ["::/0"]
   }
 
   ingress {
@@ -212,17 +216,15 @@ resource "aws_lb_target_group" "tg-1" {
     enabled         = false
     type            = "lb_cookie"
     cookie_duration = 60
-
   }
 
   health_check {
     healthy_threshold   = 2
     unhealthy_threshold = 2
-    interval            = 30
+    interval            = 300
     path                = "/"
     protocol            = "HTTP"
     matcher             = 200
-
   }
 
   lifecycle {
@@ -240,7 +242,8 @@ resource "aws_lb" "appln-lb" {
   name                       = "appln-lb"
   internal                   = false
   load_balancer_type         = "application"
-  security_groups            = [aws_security_group.private_sg.id]
+  ip_address_type            = "ipv4"
+  security_groups            = [aws_security_group.lb_sg.id]
   subnets                    = data.terraform_remote_state.network.outputs.private_subnet_id
   enable_deletion_protection = false
   depends_on                 = [aws_lb_target_group.tg-1]
@@ -253,10 +256,11 @@ resource "aws_lb" "appln-lb" {
 resource "aws_lb_listener" "listner" {
 
   load_balancer_arn = aws_lb.appln-lb.id
-  port              = 80
+  port              = 8088
   protocol          = "HTTP"
   default_action {
-    type = "fixed-response"
+    type             = "fixed-response"
+    target_group_arn = aws_lb_target_group.tg-1.arn
     fixed_response {
       content_type = "text/plain"
       message_body = " Site Not Found"
@@ -272,6 +276,23 @@ resource "aws_lb_listener" "listner" {
   )
 }
 
+
+resource "aws_alb_target_group_attachment" "Instance1" {
+  target_group_arn = aws_lb_target_group.tg-1.arn
+  target_id = aws_instance.Group8-Dev[0].private_ip
+}
+
+
+resource "aws_alb_target_group_attachment" "Instance2" {
+  target_group_arn = aws_lb_target_group.tg-1.arn
+target_id = aws_instance.Group8-Dev[1].private_ip
+}
+
+
+resource "aws_alb_target_group_attachment" "Instance3" {
+  target_group_arn = aws_lb_target_group.tg-1.arn
+ target_id = aws_instance.Group8-Dev[2].private_ip
+}
 
 
 resource "aws_lb_listener_rule" "rule-1" {
@@ -296,3 +317,47 @@ resource "aws_lb_listener_rule" "rule-1" {
   )
 }
 
+
+resource "aws_security_group" "lb_sg" {
+
+name        = "allow_http"
+  description = "Allow HTTP traffic"
+  vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
+
+  ingress {
+    description = "HTTP from everywhere"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    #cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+     cidr_blocks      = ["0.0.0.0/0"]
+     ipv6_cidr_blocks = ["::/0"]
+  }
+
+
+ ingress {
+    description = "HTTP from everywhere"
+    from_port   = 8088
+    to_port     = 8088
+    protocol    = "tcp"
+    #cidr_blocks = ["${data.terraform_remote_state.network.outputs.public_cidr_blocks[1]}"]
+     cidr_blocks      = ["0.0.0.0/0"]
+     ipv6_cidr_blocks = ["::/0"]
+  }
+
+
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${local.name_prefix}-lb-sg"
+    }
+  )
+}
