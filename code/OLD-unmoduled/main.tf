@@ -27,6 +27,20 @@ resource "aws_vpc" "main" {
 
 # Create Public Subnet1
 resource "aws_subnet" "pub_sub1" {
+  count             = length(var.public_cidr_blocks)
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.public_cidr_blocks[count.index]
+  availability_zone = data.aws_availability_zones.available.names[count.index]
+  tags = merge(
+    var.default_tags, {
+      Name = "${var.prefix}-public-subnet-${count.index}"
+    }
+  )
+}
+
+
+
+
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.pub_sub1_cidr_block
   availability_zone       = "us-east-1a"
