@@ -27,6 +27,6 @@ output "public_route_table" {
   value = module.network-dev.public_route_table
 }
 
-output "prod_vpc_cidr" {
-  value = module.network-dev.prod_vpc_cidr
+output "vpc_cidr" {
+  value = module.network-dev.vpc_cidr
 }

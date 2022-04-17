@@ -1,6 +1,6 @@
 # Module to deploy basic networking 
 module "network-dev" {
-  source = "../../modules/aws_network"
+  source              = "../../modules/aws_network"
   env                 = var.env
   vpc_cidr            = var.vpc_cidr
   private_cidr_blocks = var.private_cidr_blocks

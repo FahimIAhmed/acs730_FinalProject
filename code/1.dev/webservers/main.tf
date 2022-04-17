@@ -1,6 +1,6 @@
 #  Define the provider
 provider "aws" {
-  alias = "use1"
+  alias  = "use1"
   region = "us-east-1"
 }
 
@@ -16,8 +16,7 @@ module "globalvars" {
 
 # elb module
 module "aws_elb" {
-  source          = "../../modules/aws_elb"
-#  providers =   { aws.use1  }
+  source = "../../modules/aws_elb"
   default_tags    = var.default_tags
   env             = var.env
   vpc_id          = data.terraform_remote_state.network.outputs.vpc_id
@@ -41,12 +40,11 @@ data "aws_ami" "latest_amazon_linux" {
 data "terraform_remote_state" "network" { // This is to use Outputs from Remote State
   backend = "s3"
   config = {
-    bucket = "group-8-project-fa"                   // Bucket from where to GET Terraform State
+    bucket = "group-8-project-fa"            // Bucket from where to GET Terraform State
     key    = "dev/network/terraform.tfstate" // Object name in the bucket to GET Terraform State
-    region = "us-east-1"                            // Region where bucket created
+    region = "us-east-1"                     // Region where bucket created
   }
 }
-
 
 # Define tags locally
 locals {
@@ -54,30 +52,6 @@ locals {
   prefix       = module.globalvars.prefix
   name_prefix  = "${local.prefix}-${var.env}"
 }
-
-# # webserver EC2 instance
-# resource "aws_instance" "webserver" {
-#   count                       = var.ec2_count
-#   ami                         = data.aws_ami.latest_amazon_linux.id
-#   instance_type               = lookup(var.instance_type, var.env)
-#   key_name                    = aws_key_pair.dev_key.key_name
-#   subnet_id                   = data.terraform_remote_state.network.outputs.private_subnet[count.index]
-#   security_groups             = [aws_security_group.webserver_sg.id]
-#   associate_public_ip_address = true
-#   user_data = file("${path.module}/httpd.sh",
-#   )
-
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-
-#   tags = merge(local.default_tags,
-#     {
-#       "Name" = "${local.name_prefix}-webserver-${count.index + 1}"
-#     }
-#   )
-# }
-
 
 # Adding SSH key to Amazon EC2
 resource "aws_key_pair" "launch_key" {
@@ -167,8 +141,7 @@ resource "aws_instance" "bastion" {
   lifecycle {
     create_before_destroy = true
   }
-  user_data = file("${path.module}/init_webserver.sh",
-  )
+  user_data = file("${path.module}/init_webserver.sh")
 
 }
 # Security Group (Bastion)
@@ -176,7 +149,7 @@ resource "aws_security_group" "bastion_sg" {
   name        = "allow_ssh"
   description = "Allow SSH inbound traffic"
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
-  
+
 
   ingress {
     description = "SSH from everywhere"
@@ -212,17 +185,14 @@ resource "aws_security_group" "bastion_sg" {
 # Auto-Scaling Group module
 
 module "aws_asg" {
-  source       = "../../modules/aws_asg"
-#  providers = {aws.use1}
-  #default_tags = var.default_tags
-  env          = var.env
-  #desired_size = var.desired_size
-  asg_target_size = var.desired_size
-  asg_max_size = var.max_size
+  source              = "../../modules/aws_asg"
+  env                 = var.env
+  asg_target_size     = var.desired_size
+  asg_max_size        = var.max_size
   instance_size       = var.instance_type
-  path_to_key          = aws_key_pair.launch_key.key_name
+  path_to_key         = aws_key_pair.launch_key.key_name
   prefix              = var.prefix
-  default_tags = var.default_tags
+  default_tags        = var.default_tags
   security_groups     = [aws_security_group.webserver_sg.id]
   vpc                 = data.terraform_remote_state.network.outputs.vpc_id
   lb_target_group_arn = module.aws_elb.target_group_arns
