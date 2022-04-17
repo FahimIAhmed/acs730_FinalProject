@@ -32,7 +32,6 @@ variable "private_cidr_blocks" {
 
 #variable for vpc
 variable "vpc_cidr" {
-#  default     = "10.100.0.0/16"
   description = "aws vpc"
   type        = string
 }

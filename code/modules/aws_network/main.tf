@@ -19,10 +19,9 @@ locals {
 # Create VPC
 resource "aws_vpc" "main" {
   cidr_block = var.vpc_cidr
-
   tags = {
     Project = "acs730-finalproject"
-    Name    = "ACS704-Project-VPC"
+    Name    = "ACS730-Project-VPC"
   }
 }
 

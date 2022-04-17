@@ -19,7 +19,6 @@ output "private_cidr_blocks" {
   value = module.network-dev.private_cidr_blocks
 }
 
-
 output "private_route_table" {
   value = module.network-dev.private_route_table
 }

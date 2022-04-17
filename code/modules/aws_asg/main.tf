@@ -9,12 +9,6 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# # Provision SSH key pair for Linux VMs
-# resource "aws_key_pair" "launch_key" {
-#   key_name   = "launch_key"
-#   public_key = "/home/ec2-user/.ssh/dev_key.pub"
-# }
-
 data "aws_ami" "ami-amzn2" {
   most_recent = true
   owners      = ["amazon"]
@@ -68,24 +62,10 @@ resource "aws_autoscaling_group" "ASG" {
   desired_capacity     = var.asg_target_size
   min_size             = 1
   max_size             = var.asg_max_size
-  #force_delete         = true
-  #depends_on           = [aws_lb.ALB-tf]
-  #target_group_arns    = ["${aws_lb_target_group.TG-tf.arn}"]
   health_check_type    = "EC2"
   launch_configuration = aws_launch_configuration.webserver-launch-config.name
-  #vpc_zone_identifier  = ["${aws_subnet.prv_sub1.id}", "${aws_subnet.prv_sub2.id}"]
   vpc_zone_identifier  = var.vpc_zone_identifier
-
-  #tags = var.default_tags
-  
-  # merge(
-  #   local.default_tags, {
-  #     Name = "${var.prefix}-autoscaling-group"
-  #     propagate_at_launch = true
-  #   }
-  # )
 }
-
 
 # Create autoscaling attachment
 resource "aws_autoscaling_attachment" "ASG_attachment" {
@@ -101,7 +81,6 @@ resource "aws_autoscaling_policy" "scale_in_policy" {
   scaling_adjustment     = -1
   cooldown               = 900
 }
-
 
 resource "aws_cloudwatch_metric_alarm" "scale_in" {
   alarm_description   = "Monitors CPU utilization for Web ASG"
