@@ -28,6 +28,6 @@ output "public_route_table" {
   value = aws_route_table.pub_sub_rt[*].id
 }
 
-output "prod_vpc_cidr" {
+output "vpc_cidr" {
   value = aws_vpc.main.cidr_block
 }

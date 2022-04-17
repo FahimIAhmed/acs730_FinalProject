@@ -1,12 +1,11 @@
-# Default tags
+# Variable for default tags
 variable "default_tags" {
   default     = {}
   type        = map(any)
   description = "Default tags to be appliad to all AWS resources"
 }
 
-
-# Variable to signal the current environment 
+# Variable to hold the current environment 
 variable "env" {
   type        = string
   description = "Deployment Environment"
@@ -36,3 +35,4 @@ variable "vpc_id" {
   type        = string
   default     = null
 }
+

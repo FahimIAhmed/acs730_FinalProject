@@ -12,13 +12,11 @@ data "aws_availability_zones" "available" {
 data "terraform_remote_state" "network" { // This is to use Outputs from Remote State
   backend = "s3"
   config = {
-    bucket = "prod-acs730-project-group13"                // Bucket from where to GET Terraform State
-    key    = "prod/network/terraform.tfstate" // Object name in the bucket to GET Terraform State
+    bucket = "group-8-project-fa"                // Bucket from where to GET Terraform State
+    key    = "dev/network/terraform.tfstate" // Object name in the bucket to GET Terraform State
     region = "us-east-1"                         // Region where bucket created
   }
 }
-
-
 
 # Local variables
 locals {
@@ -26,9 +24,11 @@ locals {
     var.default_tags,
     { "Env" = var.env }
   )
+  prefix      = var.prefix
   name_prefix = "${var.prefix}-${var.env}"
 }
 
+# LB resource
 resource "aws_lb" "elb" {
   name               = "elb-${var.env}"
   internal           = false
@@ -43,7 +43,7 @@ resource "aws_lb" "elb" {
   )
 }
 
-
+#Load Balance Listener
 resource "aws_lb_listener" "elb_listener" {
   load_balancer_arn = aws_lb.elb.arn
   protocol          = "HTTP"
@@ -54,18 +54,16 @@ resource "aws_lb_listener" "elb_listener" {
   }
 }
 
-
-
+#LB target group
 resource "aws_lb_target_group" "target_group" {
   name     = "target-elb-${var.env}"
   port     = 80
   protocol = "HTTP"
-  vpc_id   = data.terraform_remote_state.network.outputs.vpc
+  vpc_id   = data.terraform_remote_state.network.outputs.vpc_id
 
   tags = {
     Name = "target-elb-${var.env}",
   Env = var.env 
   }
 }
-
 

@@ -21,8 +21,8 @@ resource "aws_vpc" "main" {
   cidr_block = var.vpc_cidr
 
   tags = {
-    Project = "acs730-assignment"
-    Name    = "My acs730 VPC"
+    Project = "acs730-finalproject"
+    Name    = "ACS704-Project-VPC"
   }
 }
 
@@ -38,7 +38,6 @@ resource "aws_subnet" "pub_sub" {
     }
   )
 }
-
 
 # Create Private Subnet
 resource "aws_subnet" "prv_sub" {
@@ -83,7 +82,7 @@ resource "aws_route_table" "pub_sub_rt" {
 
 # Create route table association of public subnet
 resource "aws_route_table_association" "internet_for_pub_sub" {
-  count          = length(aws_subnet.pub_sub[*].id)
+  count          = length(var.public_cidr_blocks)
   route_table_id = aws_route_table.pub_sub_rt.id
   subnet_id      = aws_subnet.pub_sub[count.index].id
 }
@@ -112,7 +111,6 @@ resource "aws_nat_gateway" "natgateway" {
   )
 }
 
-
 # Create private route table for prv sub
 
 resource "aws_route_table" "prv_sub_rt" {
@@ -127,22 +125,9 @@ resource "aws_route_table" "prv_sub_rt" {
   }
 }
 
-
-# THIS MAY NOT BE REQUIRED
-
-# # Add route to NAT GW 
-# resource "aws_route" "private_route" {
-#   count  = "1"
-#   route_table_id         = aws_route_table.prv_sub_rt[0].id
-#   destination_cidr_block = "0.0.0.0/0"
-#   gateway_id             = aws_nat_gateway.natgateway[count.index].id
-# }
-
-
 # Create route table association between prv sub1 & NAT GW1
 resource "aws_route_table_association" "pri_sub_to_natgw" {
-  count = length(aws_subnet.prv_sub[*].id)
-  #  count          = "1"
+  count = length(var.private_cidr_blocks)
   route_table_id = aws_route_table.prv_sub_rt[0].id
   subnet_id      = aws_subnet.prv_sub[count.index].id
 }

@@ -9,28 +9,11 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# Provision SSH key pair for Linux VMs
-resource "aws_key_pair" "launch_key" {
-  key_name   = "launch_key"
-  public_key = file(var.path_to_key)
-    # tags = merge({
-    # Name = "${local.name_prefix}-keypair"
-    # },
-    # local.default_tags
-  # )
-}
-
-# # Use remote state to retrieve the data
-# # Data source for AMI id
-# data "aws_ami" "latest_amazon_linux" {
-#   owners      = ["amazon"]
-#   most_recent = true
-#   filter {
-#     name   = "name"
-#     values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-#   }
+# # Provision SSH key pair for Linux VMs
+# resource "aws_key_pair" "launch_key" {
+#   key_name   = "launch_key"
+#   public_key = "/home/ec2-user/.ssh/dev_key.pub"
 # }
-
 
 data "aws_ami" "ami-amzn2" {
   most_recent = true
@@ -47,7 +30,6 @@ module "globalvars" {
   source = "../../modules/globalvars"
 }
 
-
 # Define tags locally
 locals {
   default_tags = merge(module.globalvars.default_tags, { "env" = var.env })
@@ -55,29 +37,10 @@ locals {
   name_prefix  = "${local.prefix}-${var.env}"
 }
 
-
-## Use remote state to retrieve the data
-#data "terraform_remote_state" "network" {
-#  backend = "s3"
-#  config = {
-#    bucket = "group-8-project1"              // Bucket where to SAVE Terraform State
-#    key    = "dev/network/terraform.tfstate" // Object name in the bucket to SAVE Terraform State
-#    region = "us-east-1"                     // Region where bucket is created
-#  }
-#}
-#
-
-
-# # Retrieve global variables from the Terraform module
-# module "globalvars" {
-#   source = "../../modules/globalvars"
-# }
-
-
 #Create Launch config
 resource "aws_launch_configuration" "webserver-launch-config" {
   name_prefix     = "webserver-launch-config"
-  image_id        =  data.aws_ami.ami-amzn2.id
+  image_id        = data.aws_ami.ami-amzn2.id
   instance_type   = lookup(var.instance_size, var.env)
   key_name        = var.launch_key
   security_groups = var.security_groups
@@ -99,9 +62,6 @@ resource "aws_launch_configuration" "webserver-launch-config" {
 }
 
 
-
-
-
 # Create Auto Scaling Group
 resource "aws_autoscaling_group" "ASG" {
   name                 = "Group8-ASG-${var.env}"
@@ -116,12 +76,14 @@ resource "aws_autoscaling_group" "ASG" {
   #vpc_zone_identifier  = ["${aws_subnet.prv_sub1.id}", "${aws_subnet.prv_sub2.id}"]
   vpc_zone_identifier  = var.vpc_zone_identifier
 
-  tags = merge(
-    var.default_tags, {
-      Name = "${var.prefix}-autoscaling-group"
-      propagate_at_launch = true
-    }
-  )
+  #tags = var.default_tags
+  
+  # merge(
+  #   local.default_tags, {
+  #     Name = "${var.prefix}-autoscaling-group"
+  #     propagate_at_launch = true
+  #   }
+  # )
 }
 
 
@@ -184,54 +146,4 @@ resource "aws_cloudwatch_metric_alarm" "scale_out" {
     AutoScalingGroupName = aws_autoscaling_group.ASG.name
   }
 }
-
-
-
-
-# # Create Target group
-
-# resource "aws_lb_target_group" "TG-tf" {
-#   name       = "acs730-TargetGroup-tf"
-#   depends_on = [aws_vpc.main]
-#   port       = 80
-#   protocol   = "HTTP"
-#   vpc_id     = aws_vpc.main.id
-#   health_check {
-#     interval            = 70
-#     path                = "/index.html"
-#     port                = 80
-#     healthy_threshold   = 2
-#     unhealthy_threshold = 2
-#     timeout             = 60
-#     protocol            = "HTTP"
-#     matcher             = "200,202"
-#   }
-# }
-
-# # Create ALB
-
-# resource "aws_lb" "ALB-tf" {
-#   name               = "acs730-ALG-tf"
-#   internal           = false
-#   load_balancer_type = "application"
-#   security_groups    = [aws_security_group.elb_sg.id]
-#   subnets            = [aws_subnet.pub_sub1.id, aws_subnet.pub_sub2.id]
-
-#   tags = {
-#     name    = "acs730-AppLoadBalancer-tf"
-#     Project = "acs730-assignment"
-#   }
-# }
-
-# # Create ALB Listener 
-
-# resource "aws_lb_listener" "front_end" {
-#   load_balancer_arn = aws_lb.ALB-tf.arn
-#   port              = "80"
-#   protocol          = "HTTP"
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_lb_target_group.TG-tf.arn
-#   }
-# }
 

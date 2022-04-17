@@ -12,6 +12,7 @@ variable "instance_type" {
 
 # Default tags
 variable "default_tags" {
+  type = map(string)
   default = {
     "Owner" = "Group-8"
     "App"   = "WebApp"

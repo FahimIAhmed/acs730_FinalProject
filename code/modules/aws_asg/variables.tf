@@ -4,21 +4,11 @@ variable "instance_size" {
   type        = map(string)
 }
 
-
 # Variable to hold the  environment 
 variable "env" {
   type        = string
   description = "Deployment Environment"
 }
-
-
-# Variable for launch Key 
-variable "launch_key" {
-  description = "Key to launch the instance"
-  type        = string
-  default     = null
-}
-
 
 variable "asg_target_size" {
   type        = number
@@ -37,14 +27,12 @@ variable "vpc_zone_identifier" {
   default     = null
 }
 
-
 # Variable for LB Target Group ARN
 variable "lb_target_group_arn" {
   description = "LB Target Group ARN"
   type        = string
   default     = null
 }
-
 
 # Variable for the security groups to attach to AWS Launch Configuration
 variable "security_groups" {
@@ -53,23 +41,22 @@ variable "security_groups" {
   default     = []
 }
 
-
-
+# Variable to hold path to private key
 variable "path_to_key" {
   description = "Path to the public key to use in Linux VMs provisioning"
   type        = string
+  default     = "/home/ec2-user/.ssh/dev_key.pub"
 }
-
-
-
 
 # Default tags
 variable "default_tags" {
-  default     = {}
-  type        = map(any)
+  type        = map(string)
   description = "Default tags to be appliad to all AWS resources"
+  default = {
+    "Owner" = "Group-8"
+    "App"   = "WebApp"
+  }
 }
-
 
 # Variable for VPC_ID
 variable "vpc" {
@@ -79,35 +66,15 @@ variable "vpc" {
 }
 
 # Variable for SSH Key 
-variable "public_key" {
+variable "launch_key" {
   description = "SSH Key"
   type        = string
   default     = null
 }
 
-
-
-
-# variable "desired_size" {
-#   type        = number
-#   description = "Desired size for ASG"
-# }
-
-
-# Name prefix
+# Variable for name prefix
 variable "prefix" {
   type        = string
   description = "Name prefix"
 }
 
-# # Instance type
-# variable "instance_type" {
-#   description = "Type of the instance"
-#   type        = map(string)
-# }
-
-# # Variable to signal the current environment 
-# variable "env" {
-#   type        = string
-#   description = "Deployment Environment"
-# }
