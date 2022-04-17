@@ -40,18 +40,6 @@ resource "aws_subnet" "pub_sub" {
 }
 
 
-# # Create Public Subnet2
-# resource "aws_subnet" "pub_sub2" {
-#   vpc_id                  = aws_vpc.main.id
-#   cidr_block              = var.pub_sub2_cidr_block
-#   availability_zone       = "us-east-1b"
-#   map_public_ip_on_launch = true
-#   tags = {
-#     Project = "acs730-assignment"
-#     Name    = "public_subnet2"
-#   }
-# }
-
 # Create Private Subnet
 resource "aws_subnet" "prv_sub" {
   count             = length(var.private_cidr_blocks)
@@ -66,21 +54,8 @@ resource "aws_subnet" "prv_sub" {
   )
 }
 
-# # Create Private Subnet2
-# resource "aws_subnet" "prv_sub2" {
-#   vpc_id                  = aws_vpc.main.id
-#   cidr_block              = var.prv_sub2_cidr_block
-#   availability_zone       = "us-east-1b"
-#   map_public_ip_on_launch = false
-
-#   tags = {
-#     Project = "acs730-assignment"
-#     Name    = "private_subnet2"
-#   }
-# }
 
 # Create Internet Gateway
-
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
@@ -92,7 +67,6 @@ resource "aws_internet_gateway" "igw" {
 }
 
 # Create Public Route Table
-
 resource "aws_route_table" "pub_sub_rt" {
   vpc_id = aws_vpc.main.id
 
@@ -102,13 +76,13 @@ resource "aws_route_table" "pub_sub_rt" {
   }
 
   tags = {
-    Name = "${local.name_prefix}-public-route_table"
+    Name = "${local.name_prefix}-public-route-table"
   }
 }
 
 
 # Create route table association of public subnet
-resource "aws_route_table_association" "internet_for_pub_sub1" {
+resource "aws_route_table_association" "internet_for_pub_sub" {
   count          = length(aws_subnet.pub_sub[*].id)
   route_table_id = aws_route_table.pub_sub_rt.id
   subnet_id      = aws_subnet.pub_sub[count.index].id
@@ -118,6 +92,7 @@ resource "aws_route_table_association" "internet_for_pub_sub1" {
 # Create EIP for NAT GW
 resource "aws_eip" "eip_natgw" {
   count = "1"
+  vpc = true
   tags = merge(local.default_tags,
     {
       "Name" = "${local.name_prefix}-${var.env}-eip"
@@ -152,8 +127,19 @@ resource "aws_route_table" "prv_sub_rt" {
   }
 }
 
-# Create route table association between prv sub1 & NAT GW1
 
+# THIS MAY NOT BE REQUIRED
+
+# # Add route to NAT GW 
+# resource "aws_route" "private_route" {
+#   count  = "1"
+#   route_table_id         = aws_route_table.prv_sub_rt[0].id
+#   destination_cidr_block = "0.0.0.0/0"
+#   gateway_id             = aws_nat_gateway.natgateway[count.index].id
+# }
+
+
+# Create route table association between prv sub1 & NAT GW1
 resource "aws_route_table_association" "pri_sub_to_natgw" {
   count = length(aws_subnet.prv_sub[*].id)
   #  count          = "1"
@@ -161,38 +147,4 @@ resource "aws_route_table_association" "pri_sub_to_natgw" {
   subnet_id      = aws_subnet.prv_sub[count.index].id
 }
 
-
-
-# # Create private route table for prv sub2
-
-# resource "aws_route_table" "prv_sub2_rt" {
-#   count  = "1"
-#   vpc_id = aws_vpc.main.id
-#   route {
-#     cidr_block     = "0.0.0.0/0"
-#     nat_gateway_id = aws_nat_gateway.natgateway_1[count.index].id
-#   }
-#   tags = {
-#     Project = "acs730-assignment"
-#     Name    = "private subnet2 route table"
-#   }
-# }
-
-# # Create route table association betn prv sub2 & NAT GW1
-
-# resource "aws_route_table_association" "pri_sub2_to_natgw1" {
-#   count          = "1"
-#   route_table_id = aws_route_table.prv_sub2_rt[count.index].id
-#   subnet_id      = aws_subnet.prv_sub2.id
-# }
-
-
-# Create security group for load balancer
-
-
-# local variables
-# locals {
-#   default_tags = module.gloabl_vars.default_tags
-#   name_prefix  = "${module.gloabl_vars.prefix}"
-# }
 

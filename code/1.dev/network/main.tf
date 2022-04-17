@@ -9,7 +9,7 @@ module "network-dev" {
   public_cidr_blocks  = var.public_cidr_blocks
   prefix              = var.prefix
   default_tags        = var.default_tags
-  
+
   #public_subnet_ids   = aws_subnet.pub_sub
 
 
