@@ -45,7 +45,7 @@ variable "security_groups" {
 variable "path_to_key" {
   description = "Path to the public key to use in Linux VMs provisioning"
   type        = string
-  default     = "/home/ec2-user/.ssh/dev_key.pub"
+  default     = "/home/ec2-user/.ssh/staging_key.pub"
 }
 
 # Default tags

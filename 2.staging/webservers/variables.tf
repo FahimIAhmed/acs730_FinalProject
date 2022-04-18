@@ -28,9 +28,9 @@ variable "prefix" {
 
 # Variable to signal the current environment 
 variable "env" {
-  default     = "dev"
+  default     = "staging"
   type        = string
-  description = "dev"
+  description = "staging"
 }
 
 variable "ec2_count" {
@@ -66,7 +66,7 @@ variable "max_size" {
 
 
 variable "path_to_key" {
-  default     = "/home/ec2-user/.ssh/dev_key.pub"
+  default     = "/home/ec2-user/.ssh/staging_key.pub"
   description = "Path to the public key to use in Linux VMs provisioning"
   type        = string
 }

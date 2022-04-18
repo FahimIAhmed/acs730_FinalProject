@@ -65,7 +65,24 @@ resource "aws_autoscaling_group" "ASG" {
   health_check_type    = "EC2"
   launch_configuration = aws_launch_configuration.webserver-launch-config.name
   vpc_zone_identifier  = var.vpc_zone_identifier
+
+  tag {
+    key = "Name"
+    value = "${local.name_prefix}-asg-instances"
+    propagate_at_launch = true
+    }
+  
+  dynamic "tag" {
+    for_each = local.default_tags
+    content {
+    key = tag.key
+    value = tag. value
+    propagate_at_launch = true
+    }
+  }
 }
+
+
 
 # Create autoscaling attachment
 resource "aws_autoscaling_attachment" "ASG_attachment" {
