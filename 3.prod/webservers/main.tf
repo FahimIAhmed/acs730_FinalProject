@@ -40,8 +40,8 @@ data "aws_ami" "latest_amazon_linux" {
 data "terraform_remote_state" "network" { // This is to use Outputs from Remote State
   backend = "s3"
   config = {
-    bucket = "group-8-project-fa"            // Bucket from where to GET Terraform State
-    key    = "dev/network/terraform.tfstate" // Object name in the bucket to GET Terraform State
+    bucket = "group-8-project-prod-fa"            // Bucket from where to GET Terraform State
+    key    = "prod/network/terraform.tfstate" // Object name in the bucket to GET Terraform State
     region = "us-east-1"                     // Region where bucket created
   }
 }
@@ -56,7 +56,7 @@ locals {
 # Adding SSH key to Amazon EC2
 resource "aws_key_pair" "launch_key" {
   key_name   = local.name_prefix
-  public_key = file("dev_key.pub")
+  public_key = file("prod_key.pub")
 }
 
 

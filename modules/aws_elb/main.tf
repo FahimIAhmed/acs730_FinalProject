@@ -12,8 +12,8 @@ data "aws_availability_zones" "available" {
 data "terraform_remote_state" "network" { // This is to use Outputs from Remote State
   backend = "s3"
   config = {
-    bucket = "group-8-project-fa"                // Bucket from where to GET Terraform State
-    key    = "dev/network/terraform.tfstate" // Object name in the bucket to GET Terraform State
+    bucket = "group-8-project-prod-fa"                // Bucket from where to GET Terraform State
+    key    = "prod/network/terraform.tfstate" // Object name in the bucket to GET Terraform State
     region = "us-east-1"                         // Region where bucket created
   }
 }
